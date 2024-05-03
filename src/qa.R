@@ -9,7 +9,8 @@
 Sys.setlocale(locale = "es_ES.UTF-8")
 
 # Working dir ----
-setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+# Working directory set from R project
+#setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 library(pacman)
 p_load(tidyverse,tidyr,readxl,shiny,
        webshot,sf,sp,mapview,leaflet,
