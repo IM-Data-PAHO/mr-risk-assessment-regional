@@ -28,7 +28,7 @@ library(tidyverse)
 library(scales)
 library(mapview)
 library(webshot)
-webshot::install_phantomjs(force = FALSE)
+webshot::install_phantomjs(force = TRUE)
 
 
 # LOAD DATA ----
