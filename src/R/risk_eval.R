@@ -5,6 +5,13 @@
 # Última fecha de modificación: 2023-10-09
 # R 4.3.0
 ##############################################################
+# Editorial changes ##########################################
+# Editor: Rafael León
+# Editor email: leonraf@paho.org
+# Edit date: 2024-05-03
+# Edit: Modified score_res_rap functions to add maximum 
+# score to columns with NA answers
+#############################################################
 
 Sys.setlocale(locale = "es_ES.UTF-8")
 
@@ -332,12 +339,14 @@ score_res_rap_equipo <- function(conf) {
   if (IS_OUTBREAK) {
     PR = case_when(
       conf == 1 ~ 0,
-      conf == 0 ~ 3
+      conf == 0 ~ 3,
+      is.na(conf) ~ 3
     )
   } else {
     PR = case_when(
       conf == 1 ~ 0,
-      conf == 0 ~ 6
+      conf == 0 ~ 6,
+      is.na(conf) ~ 6
     )
   }
   return(PR)
@@ -349,13 +358,15 @@ score_res_rap_hospitales <- function(p) {
     PR = case_when(
       p >= 80 & p <= 100 ~ 0,
       p >= 50 & p < 80 ~ 2,
-      p < 50 ~ 3
+      p < 50 ~ 3,
+      is.na(p) ~ 3 
     )
   } else {
     PR = case_when(
       p >= 80 & p <= 100 ~ 0,
       p >= 50 & p < 80 ~ 2,
-      p < 50 ~ 6
+      p < 50 ~ 6,
+      is.na(p) ~ 6
     )
   }
   return(PR)
@@ -639,6 +650,7 @@ vulnerables_data[vulnerables_data == toupper(yes_no_opts[1])] <- "1"
 vulnerables_data[is.na(vulnerables_data)] <- "2"
 vulnerables_data[c(5:12)] <- lapply(vulnerables_data[c(5:12)], as.numeric)
 vulnerables_data[is.na(vulnerables_data)] <- 2
+
 
 vulnerables_data$TOTAL_PR = vulnerables_data$pres_intercambio_pob+
   vulnerables_data$pres_turismo+

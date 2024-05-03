@@ -6,6 +6,9 @@
 # R 4.3.0
 ##############################################################
 
+# Working dir ----
+# Working directory set from R project
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 Sys.setlocale(locale = "es_ES.UTF-8")
 
 # Pacman ----
