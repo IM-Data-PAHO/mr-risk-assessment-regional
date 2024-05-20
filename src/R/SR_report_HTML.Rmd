@@ -16,6 +16,12 @@ output:
 # Última fecha de modificación: 2023-08-17
 # R 4.3.0
 ##############################################################
+# Editorial ----
+# Editor: Rafael León
+# Contact: leonraf@paho.org
+# Date: 2024-05-16
+# Changes: Added silent municipality map
+##############################################################
 
 Sys.setlocale(locale = "es_ES.UTF-8")
 options(knitr.duplicate.label = "allow", scipen = 999)
@@ -360,6 +366,24 @@ fig_map
 ### `r title_name_figure` 3e: `r lang_label("title_figure_3e")`, `r ref_country_name`, `r YEAR_5`.
 ```{r figure_3e, echo=F, out.width="100%", fig.align="center"}
 fig_map <- cal_plot_map_data(LANG_TLS,COUNTRY_NAME,YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"p_muestras_lab",rep_label_all,0,admin1_geo_id_df)
+fig_map <- tidy_map(fig_map)
+fig_map
+```
+
+\newpage
+### `r title_name_table` 3b: `r lang_label("title_figure_3f")`, `r ref_country_name`, `r YEAR_1`-`r YEAR_5`.
+```{r table_3b, echo=F}
+silent_mun_table <- cal_surv_data_table(LANG_TLS,COUNTRY_NAME,calidad_data)
+
+silent_mun_table
+```
+
+
+#### `r title_name_figure` 3f: `r lang_label("title_figure_3f")`, `r ref_country_name`, `r YEAR_5`.
+```{r figure_3f, echo=F, out.width="78%"}
+# 3F Silent municipalities ----
+fig_map <- cal_plot_map_data(LANG_TLS,COUNTRY_NAME,YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"silent_mun",rep_label_all,0,admin1_geo_id_df)
+
 fig_map <- tidy_map(fig_map)
 fig_map
 ```

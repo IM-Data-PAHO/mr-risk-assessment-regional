@@ -713,6 +713,22 @@ admin1_list <- c(toupper(lang_label("rep_label_all")),sort(unique(id_data$ADMIN1
 admin1_geo_id_df <- id_data %>% select(`ADMIN1 GEO_ID`,ADMIN1) %>% unique()
 admin1_geo_id_df <- rbind(admin1_geo_id_df,c(0,toupper(lang_label("rep_label_all"))))
 
+# Silent Municipalities ----
+# Section that determines which of the geo objects haven't reported a single case
+# in the Case by case data section using cases_data
+# ------------------------------------------------------------------------------
+
+#Select from pop_data the geo_codes of the country
+geo_info <- pop_data %>% 
+  select(GEO_ID, ADMIN1, ADMIN2, `ADMIN1 GEO_ID`)
+cases_unique <- cases_data %>%
+  select(GEO_ID) %>% 
+  distinct(GEO_ID)
+silent_mun <- anti_join(geo_info,cases_unique) 
+silent_data <- geo_info %>% 
+  mutate(silent_mun = ifelse(GEO_ID %in% silent_mun$GEO_ID, T,F))
+calidad_data <- left_join(calidad_data, silent_data)
+
 # SAVE ----
 rm(aggregated_cases,cobs_inmunidad,
    calidad_data_join,
@@ -720,7 +736,11 @@ rm(aggregated_cases,cobs_inmunidad,
    inmunidad_data_join,
    rendimiento_data_join,
    respuesta_rapida_data_join,
-   i,sheet_cut_off)
+   i,sheet_cut_off, 
+   geo_info, 
+   cases_unique,
+   silent_mun,
+   silent_data)
 save.image(file = "SR_BD.RData")
 
 # CLEAN ----

@@ -14,7 +14,8 @@ cal_title_map <- function(LANG_TLS,COUNTRY_NAME,YEAR_LIST,admin1,var) {
     var == "tasa_casos" ~ paste0(lang_label_tls(LANG_TLS,"surv_rate_novac")," ",admin1_transform(LANG_TLS,COUNTRY_NAME,admin1)," (",YEAR_5,")"),
     var == "p_casos_inv" ~ paste0(lang_label_tls(LANG_TLS,"surv_adeq_inv")," ",admin1_transform(LANG_TLS,COUNTRY_NAME,admin1)," (",YEAR_5,")"),
     var == "p_casos_muestra" ~ paste0(lang_label_tls(LANG_TLS,"surv_adeq_sample")," ",admin1_transform(LANG_TLS,COUNTRY_NAME,admin1)," (",YEAR_5,")"),
-    var == "p_muestras_lab" ~ paste0(lang_label_tls(LANG_TLS,"surv_timely_lab")," ",admin1_transform(LANG_TLS,COUNTRY_NAME,admin1)," (",YEAR_5,")")
+    var == "p_muestras_lab" ~ paste0(lang_label_tls(LANG_TLS,"surv_timely_lab")," ",admin1_transform(LANG_TLS,COUNTRY_NAME,admin1)," (",YEAR_5,")"),
+    var == "silent_mun" ~ paste0(lang_label_tls(LANG_TLS,"silent_mun_lab")," ",admin1_transform(LANG_TLS,COUNTRY_NAME,admin1)," (",YEAR_5,")")
   )
   return(var_text)
 }
@@ -111,8 +112,82 @@ cal_plot_map_data <- function(LANG_TLS,COUNTRY_NAME,YEAR_LIST,ZERO_POB_LIST,CUT_
         ) %>%
         addLegend(layerId = "map_title","topright",color = "white", opacity = 0,labels=HTML(paste0("<strong>",cal_title_map(LANG_TLS,COUNTRY_NAME,YEAR_LIST,admin1,var_to_summarise),"</strong>"))) %>%
         addLegend(title = lang_label_tls(LANG_TLS,"legend_risk_class"),colors = legend_colors,labels = legend_values, opacity = 0.5, position = 'topright')
+    
+      ## Silent Municipalities
+    } else if (var_to_summarise == "silent_mun") {
       
-    } else {
+      legend_title = lang_label_tls(LANG_TLS, "silent_mun_legend")
+      map_data <- map_data %>% rename("var"=var_to_summarise)
+      #print(colnames(map_data))
+      
+      if (admin1_id == 0) {
+        map_data <- map_data %>% select(GEO_ID,ADMIN1,ADMIN2,var,geometry)
+      } else {
+        map_data <- map_data %>% filter(`ADMIN1 GEO_ID` == admin1_id) %>% select(GEO_ID,ADMIN1,ADMIN2,var,geometry)
+      }
+      
+      map_data <- map_data %>% mutate(
+        var_level_num = case_when(
+          GEO_ID %in% ZERO_POB_LIST ~ 3,
+          is.na(var) ~ 0,
+          var == T ~ 1,
+          var == F ~ 2
+        )
+      )
+
+      pal_gradient <- colorNumeric(
+        c("#666666","#e8132b","#92d050","#9bc2e6"),
+        domain = c(0,3)
+      )
+      #print(pal_gradient)
+      legend_colors = c("#e8132b","#92d050")
+      legend_values = c(OPTS_DF$`Yes No`[2],OPTS_DF$`Yes No`[1])
+      
+      if (0 %in% map_data$var_level_num) {
+        legend_colors = c("#666666",legend_colors)
+        legend_values = c(lang_label_tls(LANG_TLS,"no_data"),legend_values)
+      }
+      
+      if (length(ZERO_POB_LIST) > 0) {
+        legend_colors = c(legend_colors,"#9bc2e6")
+        legend_values = c(legend_values,lang_label_tls(LANG_TLS,"no_hab"))
+      }
+
+      shape_label <- sprintf("<strong>%s</strong>, %s<br/>%s: %s",
+                             map_data$ADMIN2,
+                             map_data$ADMIN1,
+                             lang_label_tls(LANG_TLS, "silent_mun_legend"),
+                             ifelse(map_data$var == T, OPTS_DF$`Yes No`[2], OPTS_DF$`Yes No`[1])
+
+      ) %>% lapply(HTML)
+      
+      # Mapa
+      map <- leaflet(map_data,options = leafletOptions(doubleClickZoom = T, attributionControl = F, zoomSnap=0.1, zoomDelta=0.1)) %>%
+        addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
+        addPolygons(
+          fillColor   = ~pal_gradient(var_level_num),
+          fillOpacity = 0.7,
+          dashArray   = "",
+          weight      = 1,
+          color       = "#333333",
+          opacity     = 1,
+          highlight = highlightOptions(
+            weight = 2,
+            color = "#333333",
+            dashArray = "",
+            fillOpacity = 1,
+            bringToFront = TRUE),
+          label = shape_label,
+          labelOptions = labelOptions(
+            style = list("font-weight" = "normal", padding = "3px 8px"),
+            textsize = "15px",
+            direction = "auto")
+        ) %>% 
+        addLegend(layerId = "map_title","topright",color = "white", opacity = 0,labels=HTML(paste0("<strong>",cal_title_map(LANG_TLS,COUNTRY_NAME,YEAR_LIST,admin1,var_to_summarise),"</strong>"))) %>%
+        addLegend(title = legend_title,colors = legend_colors,labels = legend_values, opacity = 0.5, position = 'topright')
+      
+    }
+    else {
       # % de casos o muestras
       map_data <- map_data %>% rename("var"=var_to_summarise)
       map_data$var <- round(map_data$var,1)
@@ -121,7 +196,7 @@ cal_plot_map_data <- function(LANG_TLS,COUNTRY_NAME,YEAR_LIST,ZERO_POB_LIST,CUT_
         legend_title = lang_label_tls(LANG_TLS,"surv_prop_cases")
       } else if (var_to_summarise == "p_muestras_lab") {
         legend_title = lang_label_tls(LANG_TLS,"surv_prop_sample")
-      }
+      } 
       
       if (admin1_id == 0) {
         map_data <- map_data %>% select(GEO_ID,ADMIN1,ADMIN2,var,geometry)
@@ -341,3 +416,36 @@ cal_get_data_table <- function(LANG_TLS,CUT_OFFS,data,admin1_id) {
   return(datos_table)
 }
 
+
+
+cal_surv_data_vbox <- function(LANG_TLS,COUNTRY_NAME,data,admin1,admin1_id) {
+  if (admin1_id == 0) {
+    data <- data %>% select(GEO_ID,ADMIN1,ADMIN2,silent_mun)
+  } else {
+    data <- data %>% filter(`ADMIN1 GEO_ID` == admin1_id) %>% select(GEO_ID,ADMIN1,ADMIN2,silent_mun)
+  }
+  legend_title = lang_label_tls(LANG_TLS, "silent_mun_infobox_text")
+  count_muni <- length(data$silent_mun[data$silent_mun == T])
+  txt <- HTML(paste0("<div>",cFormat(count_muni,0),"<p style='color:#fffffff;'>(",cFormat(count_muni/length(data$silent_mun)*100,1),"%)</p></div>"))
+  return(list(legend_title,txt))
+}
+
+cal_surv_data_table <- function(LANG_TLS,COUNTRY_NAME,data) {
+  
+  legend_title = lang_label_tls(LANG_TLS, "silent_mun_infobox_text")
+  percent_title = lang_label_tls(LANG_TLS, "silent_mun_lab_pct")
+  count_muni <- length(data$silent_mun[data$silent_mun == T])
+  pct_muni <- cFormat(count_muni/length(data$silent_mun)*100,1)
+  
+  # Create a data frame with the labels and values
+  df <- data.frame(
+    Label = c(legend_title, percent_title),
+    Value = c(count_muni, pct_muni)
+  )
+  
+  # Generate the kable table
+  tbl <- knitr::kable(df, col.names = c(lang_label_tls(LANG_TLS, "silent_mun_lab"
+), ""), align = "lrrrrrr", booktabs = T ) 
+  
+  return(tbl)
+}

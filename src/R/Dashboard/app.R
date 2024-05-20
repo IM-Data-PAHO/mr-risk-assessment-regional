@@ -28,9 +28,9 @@ library(tidyverse)
 library(scales)
 library(mapview)
 library(webshot)
-webshot::install_phantomjs(force = TRUE)
-
-
+if (!webshot::is_phantomjs_installed()) {
+webshot::install_phantomjs(version = "2.1.1", force = TRUE)
+}
 # LOAD DATA ----
 load(file = "SR_BD.RData")
 
@@ -480,6 +480,12 @@ ui <- fluidPage(
                                  title = lang_label("surv_timely_lab"),icon = icon("flask"),
                                  shinycssloaders::withSpinner(leafletOutput("calidad_map_4",height = 500),color = "#1c9ad6", type = "8", size = 0.5),
                                  br(),div(style="text-align: center;",downloadButton(outputId = "dl_calidad_map_4",lang_label("button_download_map"),icon=icon('camera')))
+                               ),
+                               ## Silent municipalities ---- 
+                               tabPanel(
+                                 title = lang_label("silent_mun_lab"),icon = icon("bell-slash"),
+                                 shinycssloaders::withSpinner(leafletOutput("calidad_map_5",height = 500),color = "#1c9ad6", type = "8", size = 0.5),
+                                 br(),div(style="text-align: center;",downloadButton(outputId = "dl_calidad_map_5",lang_label("button_download_map"),icon=icon('camera')))
                                )
                         )
                     ),
@@ -503,7 +509,10 @@ ui <- fluidPage(
                                  shinycssloaders::withSpinner(dataTableOutput("calidad_table_dist"),color = "#1c9ad6", type = "8", size = 0.5)
                                )
                         )
-                    )
+                        ## Silent municipalities ValueBox ----
+                        
+                    ),
+                    valueBoxOutput("ind_box_silent_mun",width = 5)
                   ),
                   
                   fluidRow(
@@ -1205,7 +1214,7 @@ server <- function(input, output, session) {
     cal_map_3$dat <- cal_plot_map_data(LANG_TLS,toupper(COUNTRY_NAME),YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"p_casos_muestra",input$calidad_select_admin1,get_a1_geo_id(input$calidad_select_admin1),admin1_geo_id_df)
     cal_map_3$dat
   })
-  
+
   calidad_map_4 <- reactiveValues(dat = 0)
   output$dl_calidad_map_4 <- downloadHandler(
     filename = function() {
@@ -1219,6 +1228,37 @@ server <- function(input, output, session) {
   output$calidad_map_4 <- renderLeaflet({
     calidad_map_4$dat <- cal_plot_map_data(LANG_TLS,toupper(COUNTRY_NAME),YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"p_muestras_lab",input$calidad_select_admin1,get_a1_geo_id(input$calidad_select_admin1),admin1_geo_id_df)
     calidad_map_4$dat
+  })
+  
+  ## Silent Municipalities Server ####
+  ### Silent muni map downloader ####
+  calidad_map_5 <- reactiveValues(dat = 0)
+  output$dl_calidad_map_5 <- downloadHandler(
+    filename = function() {
+      paste0(lang_label("map")," ",input$calidad_select_admin1," ",toupper(COUNTRY_NAME)," ",lang_label("silent_mun_lab")," (",YEAR_1,"-",YEAR_5,").png")
+    },
+    content = function(file) {
+      mapshot(calidad_map_5$dat, file = file)
+    }
+  )
+  ### Silent muni map output ####
+  # Output for cal_plot_map_data with silent municipalities
+  output$calidad_map_5 <- renderLeaflet({
+    calidad_map_5$dat <- cal_plot_map_data(LANG_TLS,toupper(COUNTRY_NAME),YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"silent_mun",input$calidad_select_admin1,get_a1_geo_id(input$calidad_select_admin1),admin1_geo_id_df)
+    calidad_map_5$dat
+  })
+  
+  ### Silent muni valuebox ----
+  # Value box that renders the silent municipalities surveillance quality
+  # indicators
+  output$ind_box_silent_mun <- renderValueBox({
+    surv_box_data <- cal_surv_data_vbox(LANG_TLS,toupper(COUNTRY_NAME),calidad_data,input$calidad_select_admin1, get_a1_geo_id(input$calidad_select_admin1))
+    valueBox(
+      VB_style(surv_box_data[[2]],"font-size: 85%;"),
+      VB_style(surv_box_data[[1]],"font-size: 100%;"),
+      icon = icon("bell-slash"),
+      color = "purple"
+    )
   })
   
   
