@@ -116,7 +116,7 @@ ui <- fluidPage(
     fluidRow(
         box(width = 12, background = "maroon",
             HTML(paste0('<center><div style = "text-align: left; padding-left: 30px; padding-right: 30px; padding-top: 10px;">
-                        <img src="',lang_label("logo_org"),'" height="35"> <img id="country_flag" style = "right: 30px !important; position: absolute; padding-top: 1px; padding-bottom: 1px; padding-right: 1px; padding-left: 1px; margin-bottom: 10px; background-color: white;" src="country_flag.png" height="50">
+                        <img src="',lang_label("logo_org"),'" height="35"> <img id="country_flag" style = "right: 30px !important; position: absolute; padding-top: 0px; padding-bottom: 0px; padding-right: 0px; padding-left: 0px; margin-bottom: 10px; background-color: white;" src="country_flag.png" height="50">
                         </div> <h2>',lang_label("dashboard_title"),' - <b>',toupper(COUNTRY_NAME),'</b></h2> </center>'))
         )
     ),
@@ -482,11 +482,11 @@ ui <- fluidPage(
                                  br(),div(style="text-align: center;",downloadButton(outputId = "dl_calidad_map_4",lang_label("button_download_map"),icon=icon('camera')))
                                ),
                                ## Silent municipalities ---- 
-                               tabPanel(
-                                 title = lang_label("silent_mun_lab"),icon = icon("bell-slash"),
-                                 shinycssloaders::withSpinner(leafletOutput("calidad_map_5",height = 500),color = "#1c9ad6", type = "8", size = 0.5),
-                                 br(),div(style="text-align: center;",downloadButton(outputId = "dl_calidad_map_5",lang_label("button_download_map"),icon=icon('camera')))
-                               )
+                              # tabPanel(
+                               #  title = lang_label("silent_mun_lab"),icon = icon("bell-slash"),
+                              #   shinycssloaders::withSpinner(leafletOutput("calidad_map_5",height = 500),color = "#1c9ad6", type = "8", size = 0.5),
+                               #  br(),div(style="text-align: center;",downloadButton(outputId = "dl_calidad_map_5",lang_label("button_download_map"),icon=icon('camera')))
+                               #)
                         )
                     ),
                     box(width = 5,
@@ -511,8 +511,8 @@ ui <- fluidPage(
                         )
                         ## Silent municipalities ValueBox ----
                         
-                    ),
-                    valueBoxOutput("ind_box_silent_mun",width = 5)
+                    )
+                    #valueBoxOutput("ind_box_silent_mun",width = 5)
                   ),
                   
                   fluidRow(
@@ -1232,34 +1232,34 @@ server <- function(input, output, session) {
   
   ## Silent Municipalities Server ####
   ### Silent muni map downloader ####
-  calidad_map_5 <- reactiveValues(dat = 0)
-  output$dl_calidad_map_5 <- downloadHandler(
-    filename = function() {
-      paste0(lang_label("map")," ",input$calidad_select_admin1," ",toupper(COUNTRY_NAME)," ",lang_label("silent_mun_lab")," (",YEAR_1,"-",YEAR_5,").png")
-    },
-    content = function(file) {
-      mapshot(calidad_map_5$dat, file = file)
-    }
-  )
+  #calidad_map_5 <- reactiveValues(dat = 0)
+  #output$dl_calidad_map_5 <- downloadHandler(
+  #  filename = function() {
+  #    paste0(lang_label("map")," ",input$calidad_select_admin1," ",toupper(COUNTRY_NAME)," ",lang_label("silent_mun_lab")," (",YEAR_1,"-",YEAR_5,").png")
+  #  },
+  #  content = function(file) {
+  #    mapshot(calidad_map_5$dat, file = file)
+  #  }
+  #)
   ### Silent muni map output ####
   # Output for cal_plot_map_data with silent municipalities
-  output$calidad_map_5 <- renderLeaflet({
-    calidad_map_5$dat <- cal_plot_map_data(LANG_TLS,toupper(COUNTRY_NAME),YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"silent_mun",input$calidad_select_admin1,get_a1_geo_id(input$calidad_select_admin1),admin1_geo_id_df)
-    calidad_map_5$dat
-  })
+  #output$calidad_map_5 <- renderLeaflet({
+  #  calidad_map_5$dat <- cal_plot_map_data(LANG_TLS,toupper(COUNTRY_NAME),YEAR_LIST,ZERO_POB_LIST,CUT_OFFS,country_shapes,calidad_data,"silent_mun",input$calidad_select_admin1,get_a1_geo_id(input$calidad_select_admin1),admin1_geo_id_df)
+  #  calidad_map_5$dat
+  #})
   
   ### Silent muni valuebox ----
   # Value box that renders the silent municipalities surveillance quality
   # indicators
-  output$ind_box_silent_mun <- renderValueBox({
-    surv_box_data <- cal_surv_data_vbox(LANG_TLS,toupper(COUNTRY_NAME),calidad_data,input$calidad_select_admin1, get_a1_geo_id(input$calidad_select_admin1))
-    valueBox(
-      VB_style(surv_box_data[[2]],"font-size: 85%;"),
-      VB_style(surv_box_data[[1]],"font-size: 100%;"),
-      icon = icon("bell-slash"),
-      color = "purple"
-    )
-  })
+  #output$ind_box_silent_mun <- renderValueBox({
+  #  surv_box_data <- cal_surv_data_vbox(LANG_TLS,toupper(COUNTRY_NAME),calidad_data,input$calidad_select_admin1, get_a1_geo_id(input$calidad_select_admin1))
+  #  valueBox(
+  #    VB_style(surv_box_data[[2]],"font-size: 85%;"),
+  #    VB_style(surv_box_data[[1]],"font-size: 100%;"),
+  #    icon = icon("bell-slash"),
+  #    color = "purple"
+  #  )
+  #})
   
   
   # SERVER PROG_DEL ----

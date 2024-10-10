@@ -11,6 +11,10 @@
 # Edit date: 2024-05-03
 # Edit: Modified score_res_rap functions to add maximum 
 # score to columns with NA answers
+# Editor: Rafael León
+# Editor email: leonraf@paho.org
+# Edit date: 2024-10-09
+# Edit: Modified CASES section to use the regional sheet
 #############################################################
 
 Sys.setlocale(locale = "es_ES.UTF-8")
@@ -437,85 +441,101 @@ pop_density_Q2 <- dens_pob_median
 pop_density_Q3 <- dens_pob_median/2*3
 pop_density_Q4 <- dens_pob_median/2*4
 
+# CASES REGIONAL REPLACEMENT ----
+# Cases data is no longer calculated using cases by cases sheet,
+# A new sheet was added to have the information on the countries on
+# a country by country level, this means the indicators are precalculated
+# the new process for the regional dashboard just reads the sheet and makes sure
+# the file structure is the same as required for the output of the
+# cases section of the regular tool
+aggregated_cases <- read_excel(PATH_country_data,sheet = 8)
+colnames(aggregated_cases) <- c("ADMIN1 GEO_ID", "GEO_ID","ADMIN1","ADMIN2",
+                          "tasa_casos", "Adequate_Investigation",
+                          "Adequate_Specimen_Coll", "Timely_Avail_Of_Lab_Results",
+                          "Unvac_Or_Unknown_Case", "Suspected_Case","MMR_AGE_Elegible",
+                          "Specimen_Collected")
+inm_aggregated_cases <- aggregated_cases %>% 
+  select("GEO_ID", "Unvac_Or_Unknown_Case", "MMR_AGE_Elegible") 
+
 
 # CASES ----
-cases_data <- read_excel(PATH_country_data,sheet = 6,skip = 12)
-colnames(cases_data) <- c("YEAR","GEO_ID","ADMIN1","ADMIN2","CASE_ID","FINAL_CLASS","DATE_BIRTH","SEX","RES_PLACE","PRES_FEVER","DATE_RASH","VAC_STATE","DOSE_NUM","DATE_NOTIF","DATE_INV","DATE_SAMPLE","DATE_LAB","DATE_LAST_VAC","TRAVEL_HIST")
-cases_data$GEO_ID <- as.character(cases_data$GEO_ID)
-pop_data <- pop_data %>% filter(!is.na(GEO_ID))
-cases_data <- cases_data %>% mutate(
-  DATE_BIRTH = as.Date(DATE_BIRTH),
-  DATE_RASH = as.Date(DATE_RASH),
-  DATE_NOTIF = as.Date(DATE_NOTIF),
-  DATE_INV = as.Date(DATE_INV),
-  DATE_SAMPLE = as.Date(DATE_SAMPLE),
-  DATE_LAB = as.Date(DATE_LAB),
-  DATE_LAST_VAC = as.Date(DATE_LAST_VAC)
-)
-cases_data <- cases_data %>% filter(GEO_ID %!in% ZERO_POB_LIST & !is.na(GEO_ID))
-cases_data$Suspected_Case <- 1
-cases_data$Core_Variables_Ok <- 0
-cases_data$DATE_BIRTH[is.na(cases_data$DATE_BIRTH)] = as.Date("1900-01-01")
-cases_data$Calc_Age_Months <- as.integer(difftime(cases_data$DATE_RASH,cases_data$DATE_BIRTH, unit="days")/(30.4167))
+#cases_data <- read_excel(PATH_country_data,sheet = 6)
+#colnames(cases_data) <- c("YEAR","GEO_ID","ADMIN1","ADMIN2","CASE_ID","FINAL_CLASS","DATE_BIRTH","SEX","RES_PLACE","PRES_FEVER","DATE_RASH","VAC_STATE","DOSE_NUM","DATE_NOTIF","DATE_INV","DATE_SAMPLE","DATE_LAB","DATE_LAST_VAC","TRAVEL_HIST")
+#cases_data$GEO_ID <- as.character(cases_data$GEO_ID)
+#pop_data <- pop_data %>% filter(!is.na(GEO_ID))
+#cases_data <- cases_data %>% mutate(
+#  DATE_BIRTH = as.Date(DATE_BIRTH),
+#  DATE_RASH = as.Date(DATE_RASH),
+#  DATE_NOTIF = as.Date(DATE_NOTIF),
+#  DATE_INV = as.Date(DATE_INV),
+#  DATE_SAMPLE = as.Date(DATE_SAMPLE),
+#  DATE_LAB = as.Date(DATE_LAB),
+#  DATE_LAST_VAC = as.Date(DATE_LAST_VAC)
+#)
+#cases_data <- cases_data %>% filter(GEO_ID %!in% ZERO_POB_LIST & !is.na(GEO_ID))
+#cases_data$Suspected_Case <- 1
+#cases_data$Core_Variables_Ok <- 0
+#cases_data$DATE_BIRTH[is.na(cases_data$DATE_BIRTH)] = as.Date("1900-01-01")
+#cases_data$Calc_Age_Months <- as.integer(difftime(cases_data$DATE_RASH,cases_data$DATE_BIRTH, unit="days")/(30.4167))
 
-cases_data <- cases_data %>% mutate(
-  Core_Variables_Ok = case_when(
-    check_n_true(
-      c(!is.na(CASE_ID),
-      !is.na(Calc_Age_Months),
-      !is.na(SEX),
-      !is.na(RES_PLACE),
-      !is.na(DATE_RASH),
-      !is.na(DATE_NOTIF),
-      !is.na(DATE_INV),
-      !is.na(PRES_FEVER),
-      !is.na(DATE_SAMPLE),
-      !is.na(DATE_LAST_VAC),
-      !is.na(TRAVEL_HIST))
-      ,8) ~ 1,
-      T ~ 0
-  ),
-  MMR_Age_Elegible = case_when(Calc_Age_Months >= REF_MMR1_AGE_MONTHS ~ 1,T ~ 0),
-  Unvaccinated_Case = case_when(VAC_STATE == "" ~ 1,(VAC_STATE == yes_no_opts[2] & MMR_Age_Elegible == 1) ~ 1,T ~ 0),
-  Unknown_Case = case_when(VAC_STATE == "" ~ 1,(VAC_STATE == vac_status_opts[3] & MMR_Age_Elegible == 1) ~ 1,T ~ 0),
-  Unvac_Or_Unknown_Case = case_when(Unvaccinated_Case == 1 ~ 1,Unknown_Case == 1 ~ 1,T ~ 0),
-  Discarded_Case = case_when(FINAL_CLASS == final_class_opts[3] ~ 1, T ~ 0),
-  Confirmed_Case = case_when(FINAL_CLASS == final_class_opts[1] | FINAL_CLASS == final_class_opts[2] ~ 1, T ~ 0),
-  Case_0_5_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months < 60 ~ 1, T ~ 0),
-  Case_5_14_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months >= 60 & Calc_Age_Months <= 168 ~ 1, T ~ 0),
-  Case_5_15_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months >= 60 & Calc_Age_Months <= 180 ~ 1, T ~ 0),
-  Case_Over_15_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months > 180 ~ 1, T ~ 0),
-  Adequate_Investigation = case_when(
-    DATE_INV>0 & DATE_NOTIF>0 & (difftime(cases_data$DATE_INV,cases_data$DATE_NOTIF, unit="days") <= ref_adequate_investigation_delay) ~ 1*Core_Variables_Ok,
-    T ~ 0
-  ),
-  Specimen_Collected = case_when(DATE_SAMPLE>0 ~ 1, T ~ 0),
-  Adequate_Specimen_Coll = case_when(
-    DATE_SAMPLE>0 &
-      DATE_RASH>0 &
-      (difftime(cases_data$DATE_SAMPLE,cases_data$DATE_RASH, unit="days") <= ref_adequate_specimen_coll_delay) ~ 1, T ~ 0
-    ),
-  Timely_Avail_Of_Lab_Results = case_when(DATE_LAB>0 & (difftime(cases_data$DATE_LAB,cases_data$DATE_SAMPLE, unit="days")<=ref_timely_avail_lab_results_delay) ~ 1, T ~ 0)
-)
+#cases_data <- cases_data %>% mutate(
+#  Core_Variables_Ok = case_when(
+#    check_n_true(
+#      c(!is.na(CASE_ID),
+#      !is.na(Calc_Age_Months),
+#      !is.na(SEX),
+#      !is.na(RES_PLACE),
+#      !is.na(DATE_RASH),
+#      !is.na(DATE_NOTIF),
+#      !is.na(DATE_INV),
+#      !is.na(PRES_FEVER),
+#      !is.na(DATE_SAMPLE),
+#      !is.na(DATE_LAST_VAC),
+#      !is.na(TRAVEL_HIST))
+#      ,8) ~ 1,
+#      T ~ 0
+#  ),
+#  MMR_Age_Elegible = case_when(Calc_Age_Months >= REF_MMR1_AGE_MONTHS ~ 1,T ~ 0),
+#  Unvaccinated_Case = case_when(VAC_STATE == "" ~ 1,(VAC_STATE == yes_no_opts[2] & MMR_Age_Elegible == 1) ~ 1,T ~ 0),
+#  Unknown_Case = case_when(VAC_STATE == "" ~ 1,(VAC_STATE == vac_status_opts[3] & MMR_Age_Elegible == 1) ~ 1,T ~ 0),
+#  Unvac_Or_Unknown_Case = case_when(Unvaccinated_Case == 1 ~ 1,Unknown_Case == 1 ~ 1,T ~ 0),
+#  Discarded_Case = case_when(FINAL_CLASS == final_class_opts[3] ~ 1, T ~ 0),
+#  Confirmed_Case = case_when(FINAL_CLASS == final_class_opts[1] | FINAL_CLASS == final_class_opts[2] ~ 1, T ~ 0),
+#  Case_0_5_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months < 60 ~ 1, T ~ 0),
+#  Case_5_14_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months >= 60 & Calc_Age_Months <= 168 ~ 1, T ~ 0),
+#  Case_5_15_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months >= 60 & Calc_Age_Months <= 180 ~ 1, T ~ 0),
+#  Case_Over_15_Years = case_when(Confirmed_Case == 1 & Calc_Age_Months > 180 ~ 1, T ~ 0),
+#  Adequate_Investigation = case_when(
+#    DATE_INV>0 & DATE_NOTIF>0 & (difftime(cases_data$DATE_INV,cases_data$DATE_NOTIF, unit="days") <= ref_adequate_investigation_delay) ~ 1*Core_Variables_Ok,
+#    T ~ 0
+#  ),
+#  Specimen_Collected = case_when(DATE_SAMPLE>0 ~ 1, T ~ 0),
+#  Adequate_Specimen_Coll = case_when(
+#    DATE_SAMPLE>0 &
+#      DATE_RASH>0 &
+#      (difftime(cases_data$DATE_SAMPLE,cases_data$DATE_RASH, unit="days") <= ref_adequate_specimen_coll_delay) ~ 1, T ~ 0
+#    ),
+#  Timely_Avail_Of_Lab_Results = case_when(DATE_LAB>0 & (difftime(cases_data$DATE_LAB,cases_data$DATE_SAMPLE, unit="days")<=ref_timely_avail_lab_results_delay) ~ 1, T ~ 0)
+#)
 
-cases_data <- admin_normalizer(cases_data)
+#cases_data <- admin_normalizer(cases_data)
 
-aggregated_cases <- cases_data %>% group_by(GEO_ID) %>% summarise(
-  Unvac_Or_Unknown_Case=sum(Unvac_Or_Unknown_Case),
-  MMR_Age_Elegible=sum(MMR_Age_Elegible),
-  Suspected_Case=sum(Suspected_Case),
-  Adequate_Investigation=sum(Adequate_Investigation),
-  Adequate_Specimen_Coll=sum(Adequate_Specimen_Coll),
-  Specimen_Collected=sum(Specimen_Collected),
-  Timely_Avail_Of_Lab_Results=sum(Timely_Avail_Of_Lab_Results)
-)
+#aggregated_cases <- cases_data %>% group_by(GEO_ID) %>% summarise(
+#  Unvac_Or_Unknown_Case=sum(Unvac_Or_Unknown_Case),
+#  MMR_Age_Elegible=sum(MMR_Age_Elegible),
+#  Suspected_Case=sum(Suspected_Case),
+#  Adequate_Investigation=sum(Adequate_Investigation),
+#  Adequate_Specimen_Coll=sum(Adequate_Specimen_Coll),
+#  Specimen_Collected=sum(Specimen_Collected),
+#  Timely_Avail_Of_Lab_Results=sum(Timely_Avail_Of_Lab_Results)
+#)
 
-inm_aggregated_cases <- cases_data %>% 
-  filter(MMR_Age_Elegible == 1) %>%
-  group_by(GEO_ID) %>% summarise(
-    Unvac_Or_Unknown_Case=sum(Unvac_Or_Unknown_Case),
-    MMR_Age_Elegible=sum(MMR_Age_Elegible)
-  )
+#inm_aggregated_cases <- cases_data %>% 
+#  filter(MMR_Age_Elegible == 1) %>%
+#  group_by(GEO_ID) %>% summarise(
+#    Unvac_Or_Unknown_Case=sum(Unvac_Or_Unknown_Case),
+#    MMR_Age_Elegible=sum(MMR_Age_Elegible)
+#  )
 
 # INM_POB ----
 inmunidad_data <- read_excel(PATH_country_data,sheet = 3,skip = 1)
@@ -560,9 +580,10 @@ inmunidad_data <- inmunidad_data %>% mutate(
 inmunidad_data$cob_last_camp_PR[is.na(inmunidad_data$cob_last_camp_PR)] = 8
 
 inmunidad_data <- full_join(inmunidad_data,inm_aggregated_cases,by="GEO_ID")
-inmunidad_data$p_sospechosos_novac <- round(inmunidad_data$Unvac_Or_Unknown_Case/inmunidad_data$MMR_Age_Elegible*100,1)
+
+inmunidad_data$p_sospechosos_novac <- round(inmunidad_data$Unvac_Or_Unknown_Case/inmunidad_data$MMR_AGE_Elegible*100,0)
 inmunidad_data$Unvac_Or_Unknown_Case[is.na(inmunidad_data$Unvac_Or_Unknown_Case)] = 0
-inmunidad_data$MMR_Age_Elegible[is.na(inmunidad_data$MMR_Age_Elegible)] = 0
+inmunidad_data$MMR_AGE_Elegible[is.na(inmunidad_data$MMR_AGE_Elegible)] = 0
 inmunidad_data$p_sospechosos_novac[is.na(inmunidad_data$p_sospechosos_novac)] = 0
 inmunidad_data$p_sospechosos_novac_PR <- score_sospechosos_novac_SRP(as.integer(round(inmunidad_data$p_sospechosos_novac,0)))
 inmunidad_data$TOTAL_PR <- inmunidad_data$SRP1_PR + inmunidad_data$SRP2_PR + inmunidad_data$cob_last_camp_PR + inmunidad_data$p_sospechosos_novac_PR
@@ -719,15 +740,16 @@ admin1_geo_id_df <- rbind(admin1_geo_id_df,c(0,toupper(lang_label("rep_label_all
 # ------------------------------------------------------------------------------
 
 #Select from pop_data the geo_codes of the country
-geo_info <- pop_data %>% 
-  select(GEO_ID, ADMIN1, ADMIN2, `ADMIN1 GEO_ID`)
-cases_unique <- cases_data %>%
-  select(GEO_ID) %>% 
-  distinct(GEO_ID)
-silent_mun <- anti_join(geo_info,cases_unique) 
-silent_data <- geo_info %>% 
-  mutate(silent_mun = ifelse(GEO_ID %in% silent_mun$GEO_ID, T,F))
-calidad_data <- left_join(calidad_data, silent_data)
+#geo_info <- pop_data %>% 
+#  select(GEO_ID, ADMIN1, ADMIN2, `ADMIN1 GEO_ID`)
+#cases_unique <- cases_data %>%
+#  select(GEO_ID) %>% 
+#  distinct(GEO_ID)
+#silent_mun <- aggregated_cases %>% 
+#  select(GEO_ID ,Silent_Mun)
+#silent_data <- geo_info %>% 
+#  mutate(silent_mun = ifelse(GEO_ID %in% silent_mun$GEO_ID, T,F))
+#calidad_data <- left_join(calidad_data, silent_data)
 
 # SAVE ----
 rm(aggregated_cases,cobs_inmunidad,
@@ -736,11 +758,10 @@ rm(aggregated_cases,cobs_inmunidad,
    inmunidad_data_join,
    rendimiento_data_join,
    respuesta_rapida_data_join,
-   i,sheet_cut_off, 
-   geo_info, 
-   cases_unique,
-   silent_mun,
-   silent_data)
+   i,sheet_cut_off) 
+   #geo_info) 
+   #cases_unique,
+   #silent_data)
 save.image(file = "SR_BD.RData")
 
 # CLEAN ----
