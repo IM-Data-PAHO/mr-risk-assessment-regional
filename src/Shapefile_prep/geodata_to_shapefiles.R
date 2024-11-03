@@ -96,7 +96,9 @@ country_shapefiles <- country_shapefiles %>%
 sf_use_s2(FALSE)
 country_shapefiles = country_shapefiles %>%
   group_by(ADMIN1_GEO_ID,GEO_ID,ADMIN1,ADMIN2) %>% 
-  summarize(geometry = st_union(geometry))
+  summarize(geometry = st_union(geometry)) %>% 
+  mutate(ADMIN1_GEO_ID = ifelse(ADMIN2 == "GRENADA", "CAR", ADMIN1_GEO_ID)) %>% 
+  filter(ADMIN1_GEO_ID == "CAR")
 
 
 # Step 3 [QA] ----
