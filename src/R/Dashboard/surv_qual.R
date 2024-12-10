@@ -342,9 +342,12 @@ cal_plot_map_data <- function(LANG_TLS,COUNTRY_NAME,YEAR_LIST,ZERO_POB_LIST,CUT_
 }
 
 cal_get_data_table <- function(LANG_TLS,CUT_OFFS,data,admin1_id) {
-  
+  #View(data)
   data$risk_level <- get_risk_level(LANG_TLS,CUT_OFFS,"SURV_QUAL",data$TOTAL_PR)
-  data <- data %>% select(`ADMIN1 GEO_ID`,ADMIN1,ADMIN2,TOTAL_PR,risk_level,Suspected_Case,POB,tasa_casos, tasa_casos_PR, p_casos_inv, p_casos_inv_PR, p_casos_muestra, p_casos_muestra_PR, p_muestras_lab, p_muestras_lab_PR) %>% 
+  data <- data %>% select(`ADMIN1 GEO_ID`,ADMIN1,ADMIN2,TOTAL_PR,
+                          risk_level,
+                          #Suspected_Case,
+                          POB,tasa_casos, tasa_casos_PR, p_casos_inv, p_casos_inv_PR, p_casos_muestra, p_casos_muestra_PR, p_muestras_lab, p_muestras_lab_PR) %>% 
     mutate(
       POB = cFormat(POB,0),
       tasa_casos = round((tasa_casos),1),
@@ -362,7 +365,7 @@ cal_get_data_table <- function(LANG_TLS,CUT_OFFS,data,admin1_id) {
     data <- data %>% select(-`ADMIN1 GEO_ID`)
     colnames(data) <- c(lang_label_tls(LANG_TLS,"table_admin1_name"),lang_label_tls(LANG_TLS,"table_admin2_name"),
                         lang_label_tls(LANG_TLS,"total_pr"),lang_label_tls(LANG_TLS,"risk_level"),
-                        lang_label_tls(LANG_TLS,"surv_table_cases"),lang_label_tls(LANG_TLS,"surv_table_pob"),
+                       # lang_label_tls(LANG_TLS,"surv_table_cases"),lang_label_tls(LANG_TLS,"surv_table_pob"),
                         lang_label_tls(LANG_TLS,"surv_table_rate"),lang_label_tls(LANG_TLS,"surv_table_rate_pr"),
                         lang_label_tls(LANG_TLS,"surv_table_adeq_inv"),lang_label_tls(LANG_TLS,"surv_table_adeq_inv_pr"),
                         lang_label_tls(LANG_TLS,"surv_table_adeq_sample"),lang_label_tls(LANG_TLS,"surv_table_adeq_sample_pr"),
@@ -371,7 +374,7 @@ cal_get_data_table <- function(LANG_TLS,CUT_OFFS,data,admin1_id) {
     data <- data %>% filter(`ADMIN1 GEO_ID` == admin1_id) %>% select(-ADMIN1,-`ADMIN1 GEO_ID`)
     colnames(data) <- c(lang_label_tls(LANG_TLS,"table_admin2_name"),
                         lang_label_tls(LANG_TLS,"total_pr"),lang_label_tls(LANG_TLS,"risk_level"),
-                        lang_label_tls(LANG_TLS,"surv_table_cases"),lang_label_tls(LANG_TLS,"surv_table_pob"),
+                       # lang_label_tls(LANG_TLS,"surv_table_cases"),lang_label_tls(LANG_TLS,"surv_table_pob"),
                         lang_label_tls(LANG_TLS,"surv_table_rate"),lang_label_tls(LANG_TLS,"surv_table_rate_pr"),
                         lang_label_tls(LANG_TLS,"surv_table_adeq_inv"),lang_label_tls(LANG_TLS,"surv_table_adeq_inv_pr"),
                         lang_label_tls(LANG_TLS,"surv_table_adeq_sample"),lang_label_tls(LANG_TLS,"surv_table_adeq_sample_pr"),

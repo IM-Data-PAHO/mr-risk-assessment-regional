@@ -597,13 +597,13 @@ indicadores_data <- left_join(indicadores_data,inmunidad_data_join,by=c("ADMIN1 
 calidad_data <- id_data
 calidad_data <- left_join(calidad_data,pop_data %>% select(-ADMIN1,-ADMIN2,-dens_pob),by=c("ADMIN1 GEO_ID","GEO_ID"))
 calidad_data <- calidad_data %>% filter(!is.na(GEO_ID) & GEO_ID %!in% ZERO_POB_LIST)
-calidad_data <- left_join(calidad_data,aggregated_cases %>% select("GEO_ID","Suspected_Case","Adequate_Investigation","Adequate_Specimen_Coll","Specimen_Collected","Timely_Avail_Of_Lab_Results"),by="GEO_ID")
+calidad_data <- left_join(calidad_data,aggregated_cases %>% select("GEO_ID","tasa_casos","Adequate_Investigation","Adequate_Specimen_Coll","Timely_Avail_Of_Lab_Results"),by="GEO_ID")
 calidad_data[is.na(calidad_data)] = 0
 
-calidad_data$tasa_casos <- round(calidad_data$Suspected_Case*100000/calidad_data$POB,1)
-calidad_data$p_casos_inv <- round(calidad_data$Adequate_Investigation/calidad_data$Suspected_Case*100,1)
-calidad_data$p_casos_muestra <- round(calidad_data$Adequate_Specimen_Coll/calidad_data$Suspected_Case*100,1)
-calidad_data$p_muestras_lab <- round(calidad_data$Timely_Avail_Of_Lab_Results/calidad_data$Specimen_Collected*100,1)
+#calidad_data$tasa_casos <- round(calidad_data$Suspected_Case*100000/calidad_data$POB,1)
+calidad_data$p_casos_inv <- round(calidad_data$Adequate_Investigation)
+calidad_data$p_casos_muestra <- round(calidad_data$Adequate_Specimen_Coll)
+calidad_data$p_muestras_lab <- round(calidad_data$Timely_Avail_Of_Lab_Results)
 calidad_data[is.na(calidad_data)] = 0
 
 # Risk points para tasa de casos, formula compuesta
@@ -611,8 +611,8 @@ calidad_data$tasa_casos_PR <- 0 # iniciar en 0
 for(i in 1:nrow(calidad_data)) {
   if (calidad_data[i,]$POB >= 100000) { # Si tiene pob >= 100k usar formula above100 con tasa
     calidad_data[i,]$tasa_casos_PR = score_calidad_notif_above100(calidad_data[i,]$tasa_casos)
-  } else { # Si tiene pob < 100k usar formula below100 con casos sopechosos
-    calidad_data[i,]$tasa_casos_PR = score_calidad_notif_below100(calidad_data[i,]$Suspected_Case)
+  } else { # Change: Regional version includes notification rate for countries
+    calidad_data[i,]$tasa_casos_PR = score_calidad_notif_above100(calidad_data[i,]$tasa_casos)
   }
 }
 

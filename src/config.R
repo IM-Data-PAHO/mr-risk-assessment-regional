@@ -23,7 +23,7 @@ p_load(devtools,webshot,lubridate,forcats,stringr,dplyr,purrr,readr,tibble,
        tidyverse,tidyr,shinydashboard,shinyBS,shiny,shinycssloaders,sf,scales,
        rmarkdown,readxl,RColorBrewer,plotly,ggplot2,mapview,leaflet,janitor,
        htmltools,fontawesome,DT,data.table,knitr,geojsonio,rmapshaper,sp,
-       tinytex,rsconnect,writexl,
+       tinytex,rsconnect,writexl,rio,
        install = T)
 
 # Installation of phantomjs from Github
